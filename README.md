@@ -75,5 +75,26 @@ npm run dev
 - 列表接口统一返回 `{ items, total, page, size }`，动作接口统一返回 `{ ok, message }`。
 - 状态流转只允许在 `app/services` 里改，路由层不做业务判断。
 
+## 分群画像增量快照引擎
+
+围绕「分群画像」模块的增量更新改造，代码在 `backend/app/segment/`，可审计逻辑
+说明见 `backend/docs/segment_profile_audit.md`，测试在 `backend/tests/`：
+
+- 增量合并只有一份实现（`merge.py` 的 `MergeAccumulator`），分区重算回滚后复用
+  同一路径，逐步合并留痕可重放；
+- 画像快照只追加不覆盖，同批次/同指纹幂等，分群锁保证并发到达时一个窗口只有
+  一个 effective 完整快照；
+- 覆盖对象与画像差异按「窗口 + 分区」范围失效，不再因对象数微变全量过期，
+  差异链跨窗口连续可追溯；
+- 事件时间/到达时间跨日冲突支持 EVENT_TIME、ARRIVAL_TIME、
+  ARRIVAL_FIRST_LOCK 三种策略，一个批次只归一个窗口；
+- 失败分区可从缺失状态恢复，补齐后自动固化快照；
+- 事件分析模块通过 `SnapshotConsumer` 只读同步消费快照，下游步骤跟随现有
+  「已启用」分析模型定位。
+
+引擎接口前缀：`/api/segmentprofile/engine/*`；消费接口前缀：
+`/api/eventanalysis/snapshot-consumption/*`。前端「分群画像」页面的
+「增量快照引擎」页签提供窗口、快照、差异、冲突裁决的可视化与同步消费入口。
+
 领域：数据工程
 子方向：数据分析与数据应用

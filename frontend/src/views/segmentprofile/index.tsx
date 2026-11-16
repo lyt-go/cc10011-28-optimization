@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { request } from '@/api/client'
+import SegmentEnginePanel from './EnginePanel'
 
 const ENDPOINT = '/api/segmentprofile'
 const columns = [
@@ -46,6 +47,7 @@ export default function SegmentprofileView() {
   const [total, setTotal] = useState(0)
   const [errorMessage, setErrorMessage] = useState('')
   const [filters, setFilters] = useState<Record<string, string>>({})
+  const [tab, setTab] = useState<'engine' | 'definitions'>('engine')
   const filterFields = useMemo(() => columns.slice(0, 3), [])
 
   const reload = useCallback(async () => {
@@ -101,6 +103,27 @@ export default function SegmentprofileView() {
         </div>
       </header>
 
+      <div className="tab-bar">
+        <button
+          type="button"
+          className={`tab ${tab === 'engine' ? 'active' : ''}`}
+          onClick={() => setTab('engine')}
+        >
+          增量快照引擎
+        </button>
+        <button
+          type="button"
+          className={`tab ${tab === 'definitions' ? 'active' : ''}`}
+          onClick={() => setTab('definitions')}
+        >
+          画像定义清单
+        </button>
+      </div>
+
+      {tab === 'engine' ? (
+        <SegmentEnginePanel />
+      ) : (
+      <>
       <div className="stat-row">
         {stats.map((item) => (
           <article key={item.label} className="stat-card">
@@ -157,6 +180,8 @@ export default function SegmentprofileView() {
         <span>共 {total} 条分群画像记录</span>
         {errorMessage && <span className="error-text">{errorMessage}</span>}
       </footer>
+      </>
+      )}
     </section>
   )
 }
